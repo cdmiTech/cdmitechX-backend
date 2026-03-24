@@ -1,0 +1,47 @@
+
+[2026-03-19T11:09:14.307Z] ERROR: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b0704ccc67sm51566445ad.15 - gsmtp
+TYPE: Student OAuth
+ERROR STACK: Error: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b0704ccc67sm51566445ad.15 - gsmtp
+    at SMTPConnection._formatError (D:\Krushi Bhatiya\workbook\server\node_modules\nodemailer\lib\smtp-connection\index.js:865:19)
+    at SMTPConnection._actionAUTHComplete (D:\Krushi Bhatiya\workbook\server\node_modules\nodemailer\lib\smtp-connection\index.js:1670:34)
+    at SMTPConnection.<anonymous> (D:\Krushi Bhatiya\workbook\server\node_modules\nodemailer\lib\smtp-connection\index.js:1649:26)
+    at SMTPConnection._processResponse (D:\Krushi Bhatiya\workbook\server\node_modules\nodemailer\lib\smtp-connection\index.js:1050:20)
+    at SMTPConnection._onData (D:\Krushi Bhatiya\workbook\server\node_modules\nodemailer\lib\smtp-connection\index.js:825:14)
+    at SMTPConnection._onSocketData (D:\Krushi Bhatiya\workbook\server\node_modules\nodemailer\lib\smtp-connection\index.js:195:44)
+    at TLSSocket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+------------------------------------------
+
+[2026-03-19T11:13:05.368Z] ERROR: Gmail API has not been used in project 98179038604 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=98179038604 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.
+TYPE: GMAIL API
+STATUS: 403
+------------------------------------------
+
+[2026-03-20T06:51:16.351Z] ERROR: Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+TYPE: GMAIL API
+STATUS: 401
+------------------------------------------
+
+[2026-03-21T07:01:13.787Z] ERROR: topicName is not defined
+TYPE: GMAIL API
+STATUS: N/A
+------------------------------------------
+
+[2026-03-21T07:07:35.642Z] ERROR: topicName is not defined
+TYPE: GMAIL API
+STATUS: N/A
+------------------------------------------
+
+[2026-03-21T07:10:49.797Z] ERROR: topicName is not defined
+TYPE: GMAIL API
+STATUS: N/A
+------------------------------------------
+
+[2026-03-23T13:24:07.599Z] ERROR: Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+TYPE: GMAIL API
+STATUS: 401
+------------------------------------------
