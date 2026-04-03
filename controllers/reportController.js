@@ -138,34 +138,50 @@ exports.submitReport = async (req, res) => {
         const studentId = student._id;
 
         // Check if report already exists for this date
-        const existingReport = await Report.findOne({ studentId, date: new Date(date) });
+        const incomingDate = new Date(date);
+        const existingReport = await Report.findOne({ studentId, date: incomingDate });
         if (existingReport) {
             return res.status(400).json({ message: 'Report already submitted for this date' });
         }
 
-        const report = await Report.create({
+        const reportData = {
             studentId,
             facultyId: student.facultyId,
-            date: new Date(date),
+            date: incomingDate,
             languageId,
             topicIds: Array.isArray(topicIds) ? topicIds : [topicIds],
             projectWorkTitles: Array.isArray(projectWorkTitles) ? projectWorkTitles : (projectWorkTitles ? [projectWorkTitles] : []),
             description
-        });
+        };
 
-        // Send email in background (don't await)
-        sendReportEmail(student, report, languageName, topicNames || '', googleAccessToken, report.projectWorkTitles)
-            .then(sent => {
-                if (!sent) console.log('Background email sending failed.');
-            })
-            .catch(err => console.error('Background email error:', err));
+        // 1. Try to send email (Step 1)
+        const emailSent = await sendReportEmail(
+            student,
+            reportData,
+            languageName,
+            topicNames || '',
+            googleAccessToken,
+            reportData.projectWorkTitles
+        );
+
+        // 2. IF email fails: Do NOT save report (Step 2 - ELSE)
+        if (!emailSent) {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to send report email. Please try again.'
+            });
+        }
+
+        // 3. IF email is successfully sent: Save report in database (Step 2)
+        const report = await Report.create(reportData);
 
         res.status(201).json({
             success: true,
-            data: report
+            data: report,
+            message: 'Report Submitted Successfully'
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
