@@ -26,7 +26,7 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
             from: useOAuth ? `"${student.name}" <${student.email}>` : `"${student.name}" <${process.env.EMAIL_USER}>`,
             to: 'cdmi.project@gmail.com',
             subject: `Today's Report - ${formattedDate}`,
-            text: `Today's Report - ${formattedDate}\n\nStudent: ${student.name}\nBatch: ${student.batchTime}\nLanguage: ${languageName}\nTopics: ${topicNames}${projectWorkText}\n\nDescription:\n${report.description}`,
+            text: `Today's Report - ${formattedDate}\n\nStudent: ${student.name}\nBatch: ${student.batchTime}\nLanguage(s): ${languageName}\nTopics: ${topicNames}${projectWorkText}\n\nDescription:\n${report.description}`,
             html: `
                 <div style="max-width: 600px; margin: 0 auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; padding: 20px; border-radius: 20px;">
                     <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
@@ -46,9 +46,9 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
                                     <td style="padding: 12px 0; color: #1e293b; font-size: 14px; font-weight: 700;">${student.batchTime || 'N/A'}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 12px 0; color: #64748b; font-size: 14px; font-weight: 600;">Language</td>
+                                    <td style="padding: 12px 0; color: #64748b; font-size: 14px; font-weight: 600;">Language(s)</td>
                                     <td style="padding: 12px 0; color: #1e293b; font-size: 14px; font-weight: 700;">
-                                        <span style="background-color: #eef2ff; color: #4f46e5; padding: 4px 10px; border-radius: 6px; font-size: 12px;">${languageName}</span>
+                                        ${languageName.split(',').map(name => `<span style="background-color: #eef2ff; color: #4f46e5; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin-right: 5px;">${name.trim()}</span>`).join('')}
                                     </td>
                                 </tr>
                                 <tr>
@@ -127,7 +127,7 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
 // @access  Private (Student)
 exports.submitReport = async (req, res) => {
     try {
-        const { date, languageId, topicIds, description, languageName, topicNames, googleAccessToken, projectWorkTitles } = req.body;
+        const { date, languageId, languageIds, topicIds, description, languageName, topicNames, googleAccessToken, projectWorkTitles } = req.body;
 
         // Find the Student document corresponding to the logged-in User
         const student = await Student.findOne({ email: req.user.email });
@@ -149,6 +149,7 @@ exports.submitReport = async (req, res) => {
             facultyId: student.facultyId,
             date: incomingDate,
             languageId,
+            languageIds: Array.isArray(languageIds) ? languageIds : (languageId ? [languageId] : []),
             topicIds: Array.isArray(topicIds) ? topicIds : [topicIds],
             projectWorkTitles: Array.isArray(projectWorkTitles) ? projectWorkTitles : (projectWorkTitles ? [projectWorkTitles] : []),
             description
@@ -197,6 +198,7 @@ exports.getStudentReports = async (req, res) => {
 
         const reports = await Report.find({ studentId: student._id })
             .populate('languageId', 'name')
+            .populate('languageIds', 'name')
             .populate('topicIds', 'name order');
         res.status(200).json({ success: true, count: reports.length, data: reports });
     } catch (error) {
@@ -234,6 +236,7 @@ exports.getFacultyReports = async (req, res) => {
         let reports = await Report.find(query)
             .populate('studentId', 'name batchTime')
             .populate('languageId', 'name')
+            .populate('languageIds', 'name')
             .populate('topicIds', 'name order');
 
         // Filter by student name if provided

@@ -8,7 +8,10 @@ const getTopics = async (req, res) => {
         let query = {};
 
         if (req.query.languageId) {
-            query.languageId = req.query.languageId;
+            const langIds = req.query.languageId.split(',').filter(Boolean);
+            if (langIds.length > 0) {
+                query.languageId = { $in: langIds };
+            }
         }
 
         const topics = await Topic.find(query)

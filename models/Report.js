@@ -17,8 +17,12 @@ const reportSchema = new mongoose.Schema({
     },
     languageId: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        required: false,
         ref: 'Language'
+    },
+    languageIds: {
+        type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Language' }],
+        default: []
     },
     topicIds: {
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Topic' }],
