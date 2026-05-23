@@ -45,3 +45,8 @@ STATUS: N/A
 TYPE: GMAIL API
 STATUS: 401
 ------------------------------------------
+
+[2026-05-23T10:28:35.310Z] ERROR: Request had insufficient authentication scopes.
+TYPE: GMAIL API
+STATUS: 403
+------------------------------------------

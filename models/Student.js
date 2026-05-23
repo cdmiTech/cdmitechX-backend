@@ -44,6 +44,17 @@ const studentSchema = new mongoose.Schema({
     googleId: {
         type: String,
         sparse: true
+    },
+    courseCompleted: {
+        type: Boolean,
+        default: false
+    },
+    courseCompletedDate: {
+        type: Date
+    },
+    jobDone: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

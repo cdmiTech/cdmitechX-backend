@@ -32,7 +32,7 @@ const getSubmissions = async (req, res) => {
             studentQuery.name = { $regex: studentName, $options: 'i' };
         }
 
-        const allStudents = await Student.find(studentQuery).select('name email contact batchTime _id');
+        const allStudents = await Student.find({ ...studentQuery, courseCompleted: { $ne: true } }).select('name email contact batchTime _id');
 
         // 2. Define date range (default to today)
         const queryDate = date ? new Date(date) : new Date();

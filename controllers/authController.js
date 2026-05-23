@@ -88,20 +88,30 @@ const loginUser = async (req, res) => {
     }
 
     if (user && (await bcrypt.compare(password, user.password))) {
-        // If student, check if approved
+        // If student, check if approved or job done
+        let courseCompleted = false;
+        let jobDone = false;
+
         if (user.role === 'student') {
             const studentProfile = await Student.findOne({ email: user.email });
-            if (studentProfile && studentProfile.status === 'Pending') {
-                return res.status(200).json({
-                    _id: user.id,
-                    name: user.name,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role,
-                    status: 'Pending',
-                    token: generateToken(user._id, user.role),
-                    message: 'Your account is pending CDMI approval.'
-                });
+            if (studentProfile) {
+                if (studentProfile.jobDone) {
+                    return res.status(403).json({ message: 'Account disabled.' });
+                }
+                if (studentProfile.status === 'Pending') {
+                    return res.status(200).json({
+                        _id: user.id,
+                        name: user.name,
+                        username: user.username,
+                        email: user.email,
+                        role: user.role,
+                        status: 'Pending',
+                        token: generateToken(user._id, user.role),
+                        message: 'Your account is pending CDMI approval.'
+                    });
+                }
+                courseCompleted = studentProfile.courseCompleted || false;
+                jobDone = studentProfile.jobDone || false;
             }
         }
 
@@ -111,6 +121,8 @@ const loginUser = async (req, res) => {
             username: user.username,
             email: user.email,
             role: user.role,
+            courseCompleted,
+            jobDone,
             token: generateToken(user._id, user.role)
         });
     } else {
@@ -132,6 +144,9 @@ const googleLogin = async (req, res) => {
         let user = await User.findOne({ email });
 
         if (user) {
+            let courseCompleted = false;
+            let jobDone = false;
+
             if (user.role === 'student') {
                 // If it's a student, check their Student profile status
                 const studentProfile = await Student.findOne({ email });
@@ -146,6 +161,10 @@ const googleLogin = async (req, res) => {
                     });
                 }
 
+                if (studentProfile.jobDone) {
+                    return res.status(403).json({ message: 'Account disabled.' });
+                }
+
                 if (studentProfile.status === 'Pending') {
                     return res.status(200).json({
                         _id: user.id,
@@ -158,6 +177,9 @@ const googleLogin = async (req, res) => {
                         message: 'Your account is pending CDMI approval.'
                     });
                 }
+
+                courseCompleted = studentProfile.courseCompleted || false;
+                jobDone = studentProfile.jobDone || false;
             }
 
             // User exists and is approved (or is faculty/admin), log them in
@@ -167,6 +189,8 @@ const googleLogin = async (req, res) => {
                 username: user.username,
                 email: user.email,
                 role: user.role,
+                courseCompleted,
+                jobDone,
                 token: generateToken(user._id, user.role)
             });
         } else {
@@ -276,10 +300,14 @@ const getProfile = async (req, res) => {
         }
 
         let status = 'Approved';
+        let courseCompleted = false;
+        let jobDone = false;
         if (user.role === 'student') {
             const studentProfile = await Student.findOne({ email: user.email });
             if (studentProfile) {
                 status = studentProfile.status;
+                courseCompleted = studentProfile.courseCompleted || false;
+                jobDone = studentProfile.jobDone || false;
             }
         }
 
@@ -288,7 +316,9 @@ const getProfile = async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            status
+            status,
+            courseCompleted,
+            jobDone
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

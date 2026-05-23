@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getStudents, createStudent, updateStudent, deleteStudent, getMe, approveStudent } = require('../controllers/studentController');
+const { getStudents, createStudent, updateStudent, deleteStudent, getMe, approveStudent, completeCourse, markJobDone } = require('../controllers/studentController');
 const { protect, facultyOnly } = require('../middleware/authMiddleware');
 
 router.get('/me', protect, getMe);
@@ -15,5 +15,8 @@ router.route('/:id')
 
 router.route('/:id/approve')
     .put(protect, facultyOnly, approveStudent);
+
+router.put('/:id/complete-course', protect, facultyOnly, completeCourse);
+router.put('/:id/job-done', protect, facultyOnly, markJobDone);
 
 module.exports = router;

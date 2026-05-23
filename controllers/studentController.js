@@ -14,6 +14,12 @@ const getStudents = async (req, res) => {
         const facultyId = req.query.facultyId || req.user.id;
         const query = { facultyId };
 
+        if (req.query.completed === 'true') {
+            query.courseCompleted = true;
+        } else {
+            query.courseCompleted = { $ne: true };
+        }
+
         const students = await Student.find(query)
             .populate('courseId', 'name')
             .populate('allowedLanguageIds', 'name')
@@ -165,11 +171,62 @@ const approveStudent = async (req, res) => {
     }
 };
 
+// @desc    Mark student course completed
+// @route   PUT /api/students/:id/complete-course
+// @access  Private (Faculty/Admin)
+const completeCourse = async (req, res) => {
+    try {
+        const student = await Student.findById(req.params.id);
+
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        if (student.facultyId.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        student.courseCompleted = true;
+        student.courseCompletedDate = new Date();
+        await student.save();
+
+        res.status(200).json(student);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Mark student job done
+// @route   PUT /api/students/:id/job-done
+// @access  Private (Faculty/Admin)
+const markJobDone = async (req, res) => {
+    try {
+        const student = await Student.findById(req.params.id);
+
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        if (student.facultyId.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        student.jobDone = true;
+        await student.save();
+
+        res.status(200).json(student);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getStudents,
     createStudent,
     updateStudent,
     deleteStudent,
     getMe,
-    approveStudent
+    approveStudent,
+    completeCourse,
+    markJobDone
 };
