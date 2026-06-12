@@ -50,3 +50,8 @@ STATUS: 401
 TYPE: GMAIL API
 STATUS: 403
 ------------------------------------------
+
+[2026-06-12T10:45:27.894Z] ERROR: useOAuth is not defined
+TYPE: GMAIL API
+STATUS: N/A
+------------------------------------------

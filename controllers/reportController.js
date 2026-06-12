@@ -8,14 +8,13 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
     console.log("topicNames ==> ", topicNames);
     console.log("projectWorkTitles ==> ", projectWorkTitles);
 
-    // Check if we have an OAuth token (from student) or system credentials
-    const useOAuth = !!googleAccessToken;
-    const useSystem = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
-
-    if (!useOAuth && !useSystem) {
-        console.warn('⚠️ No email configuration found (Missing .env credentials and no Student OAuth token). Email not sent.');
+    // Requires student's Google OAuth token with gmail.send scope
+    if (!googleAccessToken) {
+        console.warn('⚠️ No Google OAuth token found. Email not sent.');
         return false;
     }
+
+    const useOAuth = !!googleAccessToken;
 
     try {
         const formattedDate = report.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -75,38 +74,25 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
             `
         };
 
-        if (useOAuth) {
-            // Using Gmail API (More reliable for the gmail.send scope than SMTP)
-            const transporter = nodemailer.createTransport({ streamTransport: true, newline: 'unix', buffer: true });
-            const info = await transporter.sendMail(mailOptions);
-            const rawMessage = info.message.toString('base64')
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/, '');
+        // Send via Gmail API using student's OAuth access token
+        const transporter = nodemailer.createTransport({ streamTransport: true, newline: 'unix', buffer: true });
+        const info = await transporter.sendMail(mailOptions);
+        const rawMessage = info.message.toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
 
-            await axios.post(
-                'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-                { raw: rawMessage },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${googleAccessToken}`,
-                        'Content-Type': 'application/json'
-                    }
+        await axios.post(
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+            { raw: rawMessage },
+            {
+                headers: {
+                    'Authorization': `Bearer ${googleAccessToken}`,
+                    'Content-Type': 'application/json'
                 }
-            );
-            console.log(`✅ Email sent successfully via GMAIL API to cdmi.project@gmail.com`);
-        } else {
-            // Standard SMTP Fallback
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS
-                }
-            });
-            await transporter.sendMail(mailOptions);
-            console.log(`✅ Email sent successfully via System SMTP to cdmi.project@gmail.com`);
-        }
+            }
+        );
+        console.log(`✅ Email sent successfully via Gmail API to cdmi.project@gmail.com`);
         return true;
     } catch (error) {
         // Detailed logging to a file for debugging

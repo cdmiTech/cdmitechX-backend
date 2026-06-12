@@ -4,7 +4,8 @@ const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
 const Student = require('../models/Student');
 
-// Initialize Firebase Admin
+// Initialize Firebase Admin - Primary Project
+let secondaryAdminApp;
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
@@ -13,6 +14,31 @@ if (!admin.apps.length) {
             private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
         }),
     });
+    console.log('[Firebase] Primary admin app initialized:', process.env.FIREBASE_PROJECT_ID);
+}
+
+// Initialize Firebase Admin - Secondary Project
+try {
+    if (process.env.FIREBASE_PROJECT_ID_2 && process.env.FIREBASE_CLIENT_EMAIL_2 && process.env.FIREBASE_PRIVATE_KEY_2) {
+        const existingApp2 = admin.apps.find(app => app.name === 'app2');
+        if (!existingApp2) {
+            secondaryAdminApp = admin.initializeApp({
+                credential: admin.credential.cert({
+                    project_id: process.env.FIREBASE_PROJECT_ID_2,
+                    client_email: process.env.FIREBASE_CLIENT_EMAIL_2,
+                    private_key: process.env.FIREBASE_PRIVATE_KEY_2.replace(/\\n/g, '\n'),
+                }),
+            }, 'app2');
+            console.log('[Firebase] Secondary admin app initialized:', process.env.FIREBASE_PROJECT_ID_2);
+        } else {
+            secondaryAdminApp = existingApp2;
+            console.log('[Firebase] Secondary admin app reused:', process.env.FIREBASE_PROJECT_ID_2);
+        }
+    } else {
+        console.warn('[Firebase] Secondary project env vars missing — only primary project active.');
+    }
+} catch (initErr) {
+    console.error('[Firebase] Failed to initialize secondary admin app:', initErr.message);
 }
 // Generate JWT
 const generateToken = (id, role) => {
@@ -137,7 +163,57 @@ const googleLogin = async (req, res) => {
     const { token } = req.body;
 
     try {
-        const decodedToken = await admin.auth().verifyIdToken(token);
+        let decodedToken;
+        const decodedJWT = jwt.decode(token);
+        const audience = decodedJWT ? decodedJWT.aud : null;
+
+        console.log('[googleLogin] Token audience (project):', audience);
+        console.log('[googleLogin] Project1 ID:', process.env.FIREBASE_PROJECT_ID);
+        console.log('[googleLogin] Project2 ID:', process.env.FIREBASE_PROJECT_ID_2);
+        console.log('[googleLogin] secondaryAdminApp exists:', !!secondaryAdminApp);
+
+        // Verify token: try the matching project first, then fall back to the other
+        if (audience === process.env.FIREBASE_PROJECT_ID_2 && secondaryAdminApp) {
+            // Token is from Project 2
+            try {
+                decodedToken = await secondaryAdminApp.auth().verifyIdToken(token);
+                console.log('[googleLogin] Verified with Project 2 (secondary)');
+            } catch (err2) {
+                console.warn('[googleLogin] Project 2 verification failed, trying Project 1 fallback:', err2.message);
+                decodedToken = await admin.auth().verifyIdToken(token);
+                console.log('[googleLogin] Verified with Project 1 (primary) fallback');
+            }
+        } else if (audience === process.env.FIREBASE_PROJECT_ID) {
+            // Token is from Project 1
+            try {
+                decodedToken = await admin.auth().verifyIdToken(token);
+                console.log('[googleLogin] Verified with Project 1 (primary)');
+            } catch (err1) {
+                console.warn('[googleLogin] Project 1 verification failed, trying Project 2 fallback:', err1.message);
+                if (secondaryAdminApp) {
+                    decodedToken = await secondaryAdminApp.auth().verifyIdToken(token);
+                    console.log('[googleLogin] Verified with Project 2 (secondary) fallback');
+                } else {
+                    throw err1;
+                }
+            }
+        } else {
+            // Unknown audience — try Project 2 first (new default), then Project 1
+            console.warn('[googleLogin] Unknown token audience:', audience, '— trying both projects');
+            try {
+                if (secondaryAdminApp) {
+                    decodedToken = await secondaryAdminApp.auth().verifyIdToken(token);
+                    console.log('[googleLogin] Verified with Project 2 (secondary) for unknown audience');
+                } else {
+                    decodedToken = await admin.auth().verifyIdToken(token);
+                    console.log('[googleLogin] Verified with Project 1 (primary) for unknown audience');
+                }
+            } catch (errUnknown) {
+                decodedToken = await admin.auth().verifyIdToken(token);
+                console.log('[googleLogin] Verified with Project 1 (primary) fallback for unknown audience');
+            }
+        }
+
         const { email, name, uid: googleId } = decodedToken;
 
         // Check if user exists (Student or Faculty/Admin)
@@ -373,6 +449,23 @@ const seedDefaultFaculty = async () => {
     }
 };
 
+// @desc    Check if an email exists in MongoDB
+// @route   POST /api/auth/check-email
+// @access  Public
+const checkEmail = async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+    try {
+        const user = await User.findOne({ email: email.trim().toLowerCase() });
+        res.json({ exists: !!user });
+    } catch (error) {
+        console.error('Check email error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -380,5 +473,6 @@ module.exports = {
     googleRegister,
     getProfile,
     seedAdmin,
-    seedDefaultFaculty
+    seedDefaultFaculty,
+    checkEmail
 };
