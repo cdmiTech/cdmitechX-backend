@@ -449,7 +449,7 @@ const seedDefaultFaculty = async () => {
     }
 };
 
-// @desc    Check if an email exists in MongoDB
+// @desc    Check if an email exists in MongoDB and determine Firebase project
 // @route   POST /api/auth/check-email
 // @access  Public
 const checkEmail = async (req, res) => {
@@ -458,8 +458,32 @@ const checkEmail = async (req, res) => {
         return res.status(400).json({ message: 'Email is required' });
     }
     try {
-        const user = await User.findOne({ email: email.trim().toLowerCase() });
-        res.json({ exists: !!user });
+        const targetEmail = email.trim().toLowerCase();
+        const user = await User.findOne({ email: targetEmail });
+        
+        let firebaseProject = null;
+
+        if (user) {
+            // Check if they exist in Firebase-1
+            try {
+                await admin.auth().getUserByEmail(targetEmail);
+                firebaseProject = 1;
+            } catch (err1) {
+                // If not in Firebase-1, check Firebase-2
+                if (typeof secondaryAdminApp !== 'undefined' && secondaryAdminApp) {
+                    try {
+                        await secondaryAdminApp.auth().getUserByEmail(targetEmail);
+                        firebaseProject = 2;
+                    } catch (err2) {
+                        firebaseProject = 1; // Default fallback if missing from both
+                    }
+                } else {
+                    firebaseProject = 1;
+                }
+            }
+        }
+
+        res.json({ exists: !!user, firebaseProject });
     } catch (error) {
         console.error('Check email error:', error);
         res.status(500).json({ message: 'Server error' });

@@ -26,6 +26,7 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
                 ? `"${student.name}" <${student.email}>`
                 : `"${student.name} (via CDMI)" <${process.env.EMAIL_USER}>`,
             to: 'cdmi.project@gmail.com',
+            replyTo: student.email,
             subject: `Today's Report - ${formattedDate}`,
             text: `Today's Report - ${formattedDate}\n\nStudent: ${student.name}\nBatch: ${student.batchTime}\nLanguage(s): ${languageName}\nTopics: ${topicNames}${projectWorkText}\n\nDescription:\n${report.description}`,
             html: `
