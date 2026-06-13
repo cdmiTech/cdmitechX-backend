@@ -8,13 +8,13 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
     console.log("topicNames ==> ", topicNames);
     console.log("projectWorkTitles ==> ", projectWorkTitles);
 
-    // Requires student's Google OAuth token with gmail.send scope
-    if (!googleAccessToken) {
-        console.warn('⚠️ No Google OAuth token found. Email not sent.');
+    const useOAuth = !!googleAccessToken;
+
+    // If no OAuth token AND no SMTP credentials, cannot send email
+    if (!useOAuth && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
+        console.warn('⚠️ No OAuth token and no SMTP credentials. Email not sent.');
         return false;
     }
-
-    const useOAuth = !!googleAccessToken;
 
     try {
         const formattedDate = report.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -22,7 +22,9 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
         const projectWorkText = Array.isArray(projectWorkTitles) && projectWorkTitles.length > 0 ? `\nProject Work Title(s): ${projectWorkTitles.join(', ')}` : '';
 
         const mailOptions = {
-            from: useOAuth ? `"${student.name}" <${student.email}>` : `"${student.name}" <${process.env.EMAIL_USER}>`,
+            from: useOAuth
+                ? `"${student.name}" <${student.email}>`
+                : `"${student.name} (via CDMI)" <${process.env.EMAIL_USER}>`,
             to: 'cdmi.project@gmail.com',
             subject: `Today's Report - ${formattedDate}`,
             text: `Today's Report - ${formattedDate}\n\nStudent: ${student.name}\nBatch: ${student.batchTime}\nLanguage(s): ${languageName}\nTopics: ${topicNames}${projectWorkText}\n\nDescription:\n${report.description}`,
@@ -74,31 +76,44 @@ const sendReportEmail = async (student, report, languageName, topicNames, google
             `
         };
 
-        // Send via Gmail API using student's OAuth access token
-        const transporter = nodemailer.createTransport({ streamTransport: true, newline: 'unix', buffer: true });
-        const info = await transporter.sendMail(mailOptions);
-        const rawMessage = info.message.toString('base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
+        if (useOAuth) {
+            // ── Gmail API path (Firebase-2 users with gmail.send OAuth token) ──────
+            const transporter = nodemailer.createTransport({ streamTransport: true, newline: 'unix', buffer: true });
+            const info = await transporter.sendMail(mailOptions);
+            const rawMessage = info.message.toString('base64')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
 
-        await axios.post(
-            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-            { raw: rawMessage },
-            {
-                headers: {
-                    'Authorization': `Bearer ${googleAccessToken}`,
-                    'Content-Type': 'application/json'
+            await axios.post(
+                'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+                { raw: rawMessage },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${googleAccessToken}`,
+                        'Content-Type': 'application/json'
+                    }
                 }
-            }
-        );
-        console.log(`✅ Email sent successfully via Gmail API to cdmi.project@gmail.com`);
+            );
+            console.log(`✅ Email sent via Gmail API (OAuth) to cdmi.project@gmail.com`);
+        } else {
+            // ── SMTP fallback (Firebase-1 users without gmail.send OAuth token) ───
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+            await transporter.sendMail(mailOptions);
+            console.log(`✅ Email sent via SMTP fallback to cdmi.project@gmail.com`);
+        }
+
         return true;
     } catch (error) {
-        // Detailed logging to a file for debugging
         const fs = require('fs');
         const logMsg = `\n[${new Date().toISOString()}] ERROR: ${error.response?.data?.error?.message || error.message}\n` +
-            `TYPE: ${googleAccessToken ? 'GMAIL API' : 'System SMTP'}\n` +
+            `TYPE: ${useOAuth ? 'GMAIL API' : 'System SMTP'}\n` +
             `STATUS: ${error.response?.status || 'N/A'}\n` +
             `------------------------------------------\n`;
         fs.appendFileSync('email_debug.log', logMsg);
