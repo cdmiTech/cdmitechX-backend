@@ -59,13 +59,16 @@ router.post('/:id/append', upload.fields([{ name: 'pdf' }, { name: 'file' }, { n
     next();
 }, appendPDF);
 
-router.delete('/:id/pdf/*', (req, res, next) => {
-    req.params.public_id = req.params[0];
-    deletePDF(req, res, next);
-});
 router.delete('/:id/pdf/:p1/:p2/:p3', (req, res, next) => {
     // Specifically handle workbook/materials/filename
     req.params.public_id = `${req.params.p1}/${req.params.p2}/${req.params.p3}`;
+    deletePDF(req, res, next);
+});
+router.delete('/:id/pdf/:p1/:p2', (req, res, next) => {
+    req.params.public_id = `${req.params.p1}/${req.params.p2}`;
+    deletePDF(req, res, next);
+});
+router.delete('/:id/pdf/:public_id', (req, res, next) => {
     deletePDF(req, res, next);
 });
 
