@@ -18,6 +18,10 @@ const protect = async (req, res, next) => {
             // Get user from the token
             req.user = await User.findById(decoded.id).select('-password');
 
+            if (!req.user || req.user.isActive === false) {
+                return res.status(403).json({ message: 'Account disabled.' });
+            }
+
             if (req.user && req.user.role === 'student') {
                 const Student = require('../models/Student');
                 const studentProfile = await Student.findOne({ email: req.user.email });

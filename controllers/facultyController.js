@@ -3,10 +3,15 @@ const bcrypt = require('bcryptjs');
 
 // @desc    Get all faculties
 // @route   GET /api/faculty
-// @access  Private (Admin)
+// @access  Public / Private
 const getFaculties = async (req, res) => {
     try {
-        const faculties = await User.find({ role: 'faculty' }).select('-password');
+        const query = { role: 'faculty' };
+        // Return only active faculties unless explicitly requested otherwise
+        if (req.query.includeDisabled !== 'true') {
+            query.isActive = { $ne: false };
+        }
+        const faculties = await User.find(query).select('-password');
         res.status(200).json(faculties);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -26,6 +31,22 @@ const addFaculty = async (req, res) => {
     try {
         const userExists = await User.findOne({ $or: [{ email }, { username }] });
         if (userExists) {
+            // If user existed but was disabled, re-enable with new details
+            if (userExists.isActive === false) {
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash(password, salt);
+                userExists.name = name;
+                userExists.password = hashedPassword;
+                userExists.isActive = true;
+                userExists.role = 'faculty';
+                await userExists.save();
+                return res.status(200).json({
+                    _id: userExists.id,
+                    name: userExists.name,
+                    email: userExists.email,
+                    role: userExists.role
+                });
+            }
             return res.status(400).json({ message: 'User already exists' });
         }
 
@@ -37,7 +58,8 @@ const addFaculty = async (req, res) => {
             email,
             username,
             password: hashedPassword,
-            role: 'faculty'
+            role: 'faculty',
+            isActive: true
         });
 
         res.status(201).json({
@@ -51,7 +73,7 @@ const addFaculty = async (req, res) => {
     }
 };
 
-// @desc    Delete faculty
+// @desc    Delete (Disable) faculty
 // @route   DELETE /api/faculty/:id
 // @access  Private (Admin)
 const deleteFaculty = async (req, res) => {
@@ -66,8 +88,11 @@ const deleteFaculty = async (req, res) => {
             return res.status(400).json({ message: 'Can only delete faculty' });
         }
 
-        await faculty.deleteOne();
-        res.status(200).json({ id: req.params.id });
+        // Soft delete / Disable faculty - keeps all courses, topics, questions, materials intact
+        faculty.isActive = false;
+        await faculty.save();
+
+        res.status(200).json({ message: 'Faculty disabled successfully', id: req.params.id });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

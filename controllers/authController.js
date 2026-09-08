@@ -114,6 +114,11 @@ const loginUser = async (req, res) => {
     }
 
     if (user && (await bcrypt.compare(password, user.password))) {
+        // Block disabled accounts
+        if (user.isActive === false) {
+            return res.status(403).json({ message: 'Account disabled. Please contact administrator.' });
+        }
+
         // If student, check if approved or job done
         let courseCompleted = false;
         let jobDone = false;
@@ -220,6 +225,10 @@ const googleLogin = async (req, res) => {
         let user = await User.findOne({ email });
 
         if (user) {
+            if (user.isActive === false) {
+                return res.status(403).json({ message: 'Account disabled. Please contact administrator.' });
+            }
+
             let courseCompleted = false;
             let jobDone = false;
 
