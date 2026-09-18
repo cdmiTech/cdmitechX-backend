@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getStudents, createStudent, updateStudent, deleteStudent, getMe, approveStudent, completeCourse, markJobDone } = require('../controllers/studentController');
+const { getStudents, createStudent, updateStudent, deleteStudent, getMe, approveStudent, completeCourse, markJobDone, getStudentsByFacultyName } = require('../controllers/studentController');
 const { protect, facultyOnly } = require('../middleware/authMiddleware');
+
+router.get('/by-faculty', getStudentsByFacultyName);
+router.get('/by-faculty/:facultyName', getStudentsByFacultyName);
 
 router.get('/me', protect, getMe);
 

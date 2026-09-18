@@ -228,6 +228,56 @@ const markJobDone = async (req, res) => {
     }
 };
 
+// @desc    Get all students by faculty name
+// @route   GET /api/students/by-faculty?facultyName=... or GET /api/students/by-faculty/:facultyName
+// @access  Public
+const getStudentsByFacultyName = async (req, res) => {
+    try {
+        const facultyName = req.query.facultyName || req.query.name || req.params.facultyName || req.body?.facultyName;
+
+        if (!facultyName || !facultyName.trim()) {
+            return res.status(400).json({ message: 'Please provide a faculty name (e.g. ?facultyName=John or /by-faculty/John)' });
+        }
+
+        // Search for faculty by name or username (case-insensitive)
+        const faculties = await User.find({
+            role: 'faculty',
+            $or: [
+                { name: { $regex: facultyName.trim(), $options: 'i' } },
+                { username: { $regex: facultyName.trim(), $options: 'i' } }
+            ]
+        });
+
+        if (!faculties || faculties.length === 0) {
+            return res.status(404).json({ message: `No faculty found with name: ${facultyName}` });
+        }
+
+        const facultyIds = faculties.map(f => f._id);
+
+        // Find all students assigned to this faculty
+        const students = await Student.find({
+            facultyId: { $in: facultyIds }
+        })
+            .populate('facultyId', 'name username')
+            .sort({ createdAt: -1 });
+
+        const formattedStudents = students.map(student => ({
+            id: student._id,
+            studentName: student.name,
+            phoneNo: student.contact || '',
+            parentNo: student.parentContact || '',
+            batchTime: student.batchTime || '',
+            facultyName: student.facultyId?.name || student.facultyId?.username || '',
+            created_at: student.createdAt
+        }));
+
+        res.status(200).json(formattedStudents);
+    } catch (error) {
+        console.error('Error fetching students by faculty name:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getStudents,
     createStudent,
@@ -236,5 +286,6 @@ module.exports = {
     getMe,
     approveStudent,
     completeCourse,
-    markJobDone
+    markJobDone,
+    getStudentsByFacultyName
 };
