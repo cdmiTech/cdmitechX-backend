@@ -254,9 +254,11 @@ const getStudentsByFacultyName = async (req, res) => {
 
         const facultyIds = faculties.map(f => f._id);
 
-        // Find all students assigned to this faculty
+        // Find all running students assigned to this faculty (excluding course completed and job done)
         const students = await Student.find({
-            facultyId: { $in: facultyIds }
+            facultyId: { $in: facultyIds },
+            courseCompleted: { $ne: true },
+            jobDone: { $ne: true }
         })
             .populate('facultyId', 'name username')
             .sort({ createdAt: -1 });

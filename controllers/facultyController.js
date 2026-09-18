@@ -73,6 +73,66 @@ const addFaculty = async (req, res) => {
     }
 };
 
+// @desc    Update faculty
+// @route   PUT /api/faculty/:id
+// @access  Private (Admin)
+const updateFaculty = async (req, res) => {
+    const { name, email, username, password } = req.body;
+
+    try {
+        const faculty = await User.findById(req.params.id);
+
+        if (!faculty) {
+            return res.status(404).json({ message: 'Faculty not found' });
+        }
+
+        if (faculty.role !== 'faculty') {
+            return res.status(400).json({ message: 'Can only update faculty accounts' });
+        }
+
+        // Check if email is being changed and is already taken
+        if (email && email !== faculty.email) {
+            const emailExists = await User.findOne({ email, _id: { $ne: req.params.id } });
+            if (emailExists) {
+                return res.status(400).json({ message: 'Email already in use by another account' });
+            }
+            faculty.email = email;
+        }
+
+        // Check if username is being changed and is already taken
+        if (username && username !== faculty.username) {
+            const usernameExists = await User.findOne({ username, _id: { $ne: req.params.id } });
+            if (usernameExists) {
+                return res.status(400).json({ message: 'Username already in use by another account' });
+            }
+            faculty.username = username;
+        }
+
+        if (name) {
+            faculty.name = name;
+        }
+
+        // If password is provided, hash and update it
+        if (password && password.trim() !== '') {
+            const salt = await bcrypt.genSalt(10);
+            faculty.password = await bcrypt.hash(password, salt);
+        }
+
+        await faculty.save();
+
+        res.status(200).json({
+            _id: faculty.id,
+            name: faculty.name,
+            username: faculty.username,
+            email: faculty.email,
+            role: faculty.role,
+            isActive: faculty.isActive
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Delete (Disable) faculty
 // @route   DELETE /api/faculty/:id
 // @access  Private (Admin)
@@ -101,5 +161,6 @@ const deleteFaculty = async (req, res) => {
 module.exports = {
     getFaculties,
     addFaculty,
+    updateFaculty,
     deleteFaculty
 };

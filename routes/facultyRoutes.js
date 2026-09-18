@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getFaculties, addFaculty, deleteFaculty } = require('../controllers/facultyController');
+const { getFaculties, addFaculty, updateFaculty, deleteFaculty } = require('../controllers/facultyController');
 const { protect } = require('../middleware/authMiddleware');
 
 const adminOnly = (req, res, next) => {
@@ -16,6 +16,7 @@ router.route('/')
     .post(protect, addFaculty);
 
 router.route('/:id')
+    .put(protect, updateFaculty)
     .delete(protect, deleteFaculty);
 
 module.exports = router;
