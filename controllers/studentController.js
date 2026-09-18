@@ -38,9 +38,9 @@ const getStudents = async (req, res) => {
 };
 
 const createStudent = async (req, res) => {
-    const { name, email, password, batchTime, contact, courseId, allowedLanguageIds } = req.body;
+    const { name, email, password, batchTime, contact, parentContact, courseId, allowedLanguageIds } = req.body;
 
-    if (!name || !email || !password || !batchTime || !contact || !courseId) {
+    if (!name || !email || !password || !batchTime || !contact || !parentContact || !courseId) {
         return res.status(400).json({ message: 'Please add all fields' });
     }
 
@@ -75,6 +75,7 @@ const createStudent = async (req, res) => {
             password: hashedPassword,
             batchTime,
             contact,
+            parentContact,
             courseId,
             allowedLanguageIds: allowedLanguageIds || [],
             facultyId: req.user.id

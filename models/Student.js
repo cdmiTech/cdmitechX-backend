@@ -22,6 +22,10 @@ const studentSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    parentContact: {
+        type: String,
+        default: ''
+    },
     courseId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,

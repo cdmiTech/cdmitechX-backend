@@ -297,9 +297,9 @@ const googleLogin = async (req, res) => {
 // @route   POST /api/auth/google/register
 // @access  Public
 const googleRegister = async (req, res) => {
-    const { email, name, googleId, password, batchTime, contact, courseId, facultyId } = req.body;
+    const { email, name, googleId, password, batchTime, contact, parentContact, courseId, facultyId } = req.body;
 
-    if (!email || !name || !googleId || !batchTime || !contact || !courseId || !facultyId) {
+    if (!email || !name || !googleId || !batchTime || !contact || !parentContact || !courseId || !facultyId) {
         return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
@@ -349,6 +349,7 @@ const googleRegister = async (req, res) => {
             password: hashedPassword,
             batchTime,
             contact,
+            parentContact: parentContact || '',
             courseId,
             facultyId,
             googleId,
