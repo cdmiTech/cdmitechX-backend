@@ -246,9 +246,12 @@ const revertRunning = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
+        if (student.jobDone) {
+            return res.status(400).json({ message: 'Cannot revert a student whose job is already marked as Done' });
+        }
+
         student.courseCompleted = false;
         student.courseCompletedDate = null;
-        student.jobDone = false;
         await student.save();
 
         res.status(200).json(student);
