@@ -231,6 +231,32 @@ const markJobDone = async (req, res) => {
     }
 };
 
+// @desc    Revert student back to running status
+// @route   PUT /api/students/:id/revert-running
+// @access  Private (Faculty/Admin)
+const revertRunning = async (req, res) => {
+    try {
+        const student = await Student.findById(req.params.id);
+
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        if (student.facultyId.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        student.courseCompleted = false;
+        student.courseCompletedDate = null;
+        student.jobDone = false;
+        await student.save();
+
+        res.status(200).json(student);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Get all students by faculty name
 // @route   GET /api/students/by-faculty?facultyName=... or GET /api/students/by-faculty/:facultyName
 // @access  Public
@@ -298,5 +324,6 @@ module.exports = {
     approveStudent,
     completeCourse,
     markJobDone,
+    revertRunning,
     getStudentsByFacultyName
 };
