@@ -59,6 +59,11 @@ const studentSchema = new mongoose.Schema({
     jobDone: {
         type: Boolean,
         default: false
+    },
+    panel: {
+        type: String,
+        enum: ['live', 'local'],
+        default: 'live'
     }
 }, { timestamps: true });
 

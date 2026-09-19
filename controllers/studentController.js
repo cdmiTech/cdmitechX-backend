@@ -38,7 +38,7 @@ const getStudents = async (req, res) => {
 };
 
 const createStudent = async (req, res) => {
-    const { name, email, password, batchTime, contact, parentContact, courseId, allowedLanguageIds } = req.body;
+    const { name, email, password, batchTime, contact, parentContact, courseId, allowedLanguageIds, panel } = req.body;
 
     if (!name || !email || !password || !batchTime || !contact || !parentContact || !courseId) {
         return res.status(400).json({ message: 'Please add all fields' });
@@ -78,7 +78,8 @@ const createStudent = async (req, res) => {
             parentContact,
             courseId,
             allowedLanguageIds: allowedLanguageIds || [],
-            facultyId: req.user.id
+            facultyId: req.user.id,
+            panel: panel || 'live'
         });
 
         res.status(200).json(student);
@@ -254,9 +255,10 @@ const getStudentsByFacultyName = async (req, res) => {
 
         const facultyIds = faculties.map(f => f._id);
 
-        // Find all running students assigned to this faculty (excluding course completed and job done)
+        // Find all running students assigned to this faculty (excluding course completed and job done) who belong to local panel
         const students = await Student.find({
             facultyId: { $in: facultyIds },
+            panel: 'local',
             courseCompleted: { $ne: true },
             jobDone: { $ne: true }
         })
@@ -270,7 +272,8 @@ const getStudentsByFacultyName = async (req, res) => {
             parentNo: student.parentContact || '',
             batchTime: student.batchTime || '',
             facultyName: student.facultyId?.name || student.facultyId?.username || '',
-            created_at: student.createdAt
+            created_at: student.createdAt,
+            panel: student.panel || 'live'
         }));
 
         res.status(200).json(formattedStudents);
