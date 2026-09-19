@@ -1,5 +1,7 @@
 const Student = require('../models/Student');
 const User = require('../models/User');
+const Course = require('../models/Course');
+const Language = require('../models/Language');
 const bcrypt = require('bcryptjs');
 
 // ... (existing imports)
@@ -263,6 +265,8 @@ const getStudentsByFacultyName = async (req, res) => {
             jobDone: { $ne: true }
         })
             .populate('facultyId', 'name username')
+            .populate('courseId', 'name')
+            .populate('allowedLanguageIds', 'name')
             .sort({ createdAt: -1 });
 
         const formattedStudents = students.map(student => ({
@@ -272,6 +276,8 @@ const getStudentsByFacultyName = async (req, res) => {
             parentNo: student.parentContact || '',
             batchTime: student.batchTime || '',
             facultyName: student.facultyId?.name || student.facultyId?.username || '',
+            courseName: student.courseId?.name || '',
+            languages: (student.allowedLanguageIds || []).map(l => l.name || String(l)).filter(Boolean),
             created_at: student.createdAt,
             panel: student.panel || 'live'
         }));
