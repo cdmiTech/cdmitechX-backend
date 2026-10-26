@@ -13,7 +13,10 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 const storage = multer.memoryStorage();
 const upload = multer({
     storage,
-    limits: { fileSize: 25 * 1024 * 1024 } // 25MB max per image
+    limits: {
+        fileSize: 100 * 1024 * 1024, // 100MB max per image
+        fieldSize: 100 * 1024 * 1024
+    }
 });
 
 // All routes require authentication
