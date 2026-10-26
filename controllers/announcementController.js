@@ -10,13 +10,17 @@ exports.getAnnouncements = async (req, res) => {
         const { onlyActive } = req.query;
         let filter = {};
 
-        // If onlyActive is true, filter active and end date >= today's start of day
+        // If onlyActive is true, filter active and (no expiry OR end date >= today's start of day)
         if (onlyActive === 'true') {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             filter = {
                 isActive: true,
-                endDate: { $gte: today }
+                $or: [
+                    { endDate: null },
+                    { endDate: { $exists: false } },
+                    { endDate: { $gte: today } }
+                ]
             };
         }
 
@@ -58,8 +62,8 @@ exports.createAnnouncement = async (req, res) => {
     try {
         const { title, description, link, linkButtonText, endDate, isActive } = req.body;
 
-        if (!title || !endDate) {
-            return res.status(400).json({ message: 'Title and End Date are required' });
+        if (!title) {
+            return res.status(400).json({ message: 'Title is required' });
         }
 
         let uploadedImages = [];
@@ -107,7 +111,7 @@ exports.createAnnouncement = async (req, res) => {
             images: uploadedImages,
             link: link ? link.trim() : '',
             linkButtonText: linkButtonText ? linkButtonText.trim() : 'Learn More',
-            endDate: new Date(endDate),
+            endDate: (endDate && endDate !== 'null' && endDate !== '') ? new Date(endDate) : null,
             isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true,
             facultyId: req.user._id || req.user.id,
             facultyName
@@ -137,7 +141,9 @@ exports.updateAnnouncement = async (req, res) => {
         if (description !== undefined) announcement.description = description.trim();
         if (link !== undefined) announcement.link = link.trim();
         if (linkButtonText !== undefined) announcement.linkButtonText = linkButtonText.trim();
-        if (endDate !== undefined) announcement.endDate = new Date(endDate);
+        if (endDate !== undefined) {
+            announcement.endDate = (endDate && endDate !== 'null' && endDate !== '') ? new Date(endDate) : null;
+        }
         if (isActive !== undefined) announcement.isActive = isActive === 'true' || isActive === true;
 
         // Handle existing images kept by the user

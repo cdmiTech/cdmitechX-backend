@@ -17,7 +17,7 @@ exports.getSuccessStudents = async (req, res) => {
 
         const successStudents = await SuccessStudent.find(filter)
             .populate('facultyId', 'username email name')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1, _id: -1 });
 
         res.status(200).json(successStudents);
     } catch (error) {

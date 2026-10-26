@@ -37,7 +37,7 @@ const announcementSchema = new mongoose.Schema({
     },
     endDate: {
         type: Date,
-        required: [true, 'Please specify an end date for the announcement']
+        default: null
     },
     isActive: {
         type: Boolean,
