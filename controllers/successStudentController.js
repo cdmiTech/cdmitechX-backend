@@ -37,6 +37,7 @@ exports.uploadSuccessStudents = async (req, res) => {
 
         const facultyName = req.user.username || req.user.name || req.user.email || 'Faculty';
         const createdEntries = [];
+        let lastError = null;
 
         for (const file of req.files) {
             try {
@@ -59,17 +60,20 @@ exports.uploadSuccessStudents = async (req, res) => {
                 createdEntries.push(newEntry);
             } catch (uploadErr) {
                 console.error('Error uploading image to Cloudinary:', uploadErr);
+                lastError = uploadErr;
             }
         }
 
         if (createdEntries.length === 0) {
-            return res.status(500).json({ message: 'Failed to upload images. Please verify the image files and try again.' });
+            return res.status(500).json({ 
+                message: lastError?.message || 'Failed to upload images. Please check the files and try again.' 
+            });
         }
 
         res.status(201).json(createdEntries);
     } catch (error) {
         console.error('Error in uploadSuccessStudents:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ message: error.message || 'Server error', error: error.message });
     }
 };
 
