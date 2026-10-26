@@ -22,8 +22,19 @@ router.use(protect);
 // Accessible by students, faculty, and admin (students receive only active)
 router.get('/', getSuccessStudents);
 
+// Safe upload wrapper that catches multer errors cleanly
+const uploadMiddleware = (req, res, next) => {
+    upload.array('images', 30)(req, res, (err) => {
+        if (err) {
+            console.error('Multer file upload error:', err);
+            return res.status(400).json({ message: err.message || 'File upload error' });
+        }
+        next();
+    });
+};
+
 // Faculty & Admin management routes
-router.post('/', authorize('faculty', 'admin'), upload.array('images', 30), uploadSuccessStudents);
+router.post('/', authorize('faculty', 'admin'), uploadMiddleware, uploadSuccessStudents);
 router.patch('/:id/toggle', authorize('faculty', 'admin'), toggleSuccessStudentStatus);
 router.delete('/:id', authorize('faculty', 'admin'), deleteSuccessStudent);
 
